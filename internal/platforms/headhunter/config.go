@@ -45,7 +45,6 @@ func (hh *HeadHunter) CreateQuery() (query string) {
 	params.Add("no_magic", "true")
 	params.Add("ored_clusters", "true")
 	params.Add("order_by", "relevance")
-	params.Add("items_on_page", "100")
 	params.Add("search_period", "0")
 	params.Add("logic", "normal")
 	params.Add("pos", "position")
@@ -58,6 +57,7 @@ func (hh *HeadHunter) CreateQuery() (query string) {
 	params.Add("job_search_status", "has_job_offer")
 	params.Add("job_search_status", "accepted_job_offer")
 	params.Add("job_search_status", "not_looking_for_job")
+	params.Add("items_on_page", "100")
 
 	return "https://hh.ru/search/resume?" + params.Encode()
 }

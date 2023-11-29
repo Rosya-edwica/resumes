@@ -15,9 +15,25 @@ import (
 
 // Отправная точка для запуска парсинга по профессиям
 func (hh *HeadHunter) ParseAll() {
-	r := resume.NewRep(hh.DB)
 	for _, pos := range hh.Positions {
-		resumes := hh.ScrapePosition(pos)
+		hh.ScrapePosition(pos)
+	}
+}
+
+// Для того, чтобы спарсить профессию, нужно объединить название профессии с другими наименованиями и убрать из этого списка дубликаты
+// После чего итерируемся по всем наименованиям ОДНОЙ профессии и возвращаем список резюме
+func (hh *HeadHunter) ScrapePosition(pos models.Position) {
+	hh.CurrentPositionId = pos.Id
+	hh.PositionName = pos.Name
+	pos.OtherNames = append(pos.OtherNames, pos.Name)
+	r := resume.NewRep(hh.DB)
+	for _, name := range getUniqueNames(pos.OtherNames) {
+		hh.CurrentPositionName = name
+		resumes := hh.CollectAllResumesByQuery()
+		if len(resumes) == 0 {
+			logger.Log.Printf("Не нашлось резюме для профессии: %s", name)
+			continue
+		}
 		err := r.SaveResumes(resumes)
 		if err != nil {
 			logger.Log.Printf("ОШИБКА при сохранении %d резюме: %s", len(resumes), err)
@@ -25,20 +41,7 @@ func (hh *HeadHunter) ParseAll() {
 			logger.Log.Printf("УСПЕШНО сохранили %d резюме", len(resumes))
 		}
 	}
-}
-
-// Для того, чтобы спарсить профессию, нужно объединить название профессии с другими наименованиями и убрать из этого списка дубликаты
-// После чего итерируемся по всем наименованиям ОДНОЙ профессии и возвращаем список резюме
-func (hh *HeadHunter) ScrapePosition(pos models.Position) (resumes []models.Resume) {
-	hh.CurrentPositionId = pos.Id
-	hh.PositionName = pos.Name
-	pos.OtherNames = append(pos.OtherNames, pos.Name)
-	for _, name := range getUniqueNames(pos.OtherNames) {
-		hh.CurrentPositionName = name
-		nameResumes := hh.CollectAllResumesByQuery()
-		resumes = append(resumes, nameResumes...)
-	}
-	return resumes
+	return
 }
 
 // Здесь нужно реализовать определение количество доступных резюме
@@ -65,7 +68,7 @@ func (hh *HeadHunter) FindResumesInCurrentCity(city models.City) (resumes []mode
 	hh.CurrentCityId = city.HeadhunterID
 	hh.CurrentCityEdwicaId = city.EdwicaID
 	var pageNum int
-	for {
+	for pageNum < 50 {
 		url := fmt.Sprintf("%s&page=%d", hh.CreateQuery(), pageNum)
 		pageResumes := hh.CollectResumesFromPage(url)
 		if len(pageResumes) == 0 {
