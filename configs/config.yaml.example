@@ -1,0 +1,5 @@
+mysql_host: "host"
+mysql_port: port
+mysql_user: "user"
+mysql_password: "your pass"
+mysql_db: "db name"
